@@ -78,6 +78,36 @@
             color: #ffc107;
             font-weight: bold;
         }
+        .success {
+            color: #28a745;
+            font-size: 20px;
+        }
+
+        /* הודעה צפה למעלה */
+        .success-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(40, 167, 69, 0.9); /* ירוק עם שקיפות */
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            z-index: 9999;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease, visibility 0s 0.5s;
+        }
+
+        .success-message.show {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.5s ease, visibility 0s 0s;
+        }
     </style>
 
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -91,11 +121,17 @@
         <div id="result"></div>
     </div>
 
+    <!-- הודעת אישור צפה -->
+    <div id="successMessage" class="success-message">
+        סריקה הצליחה!
+    </div>
+
     <script>
         const startButton = document.getElementById('startButton');
         const sessionNameInput = document.getElementById('sessionName');
         const resultDiv = document.getElementById('result');
         const readerDiv = document.getElementById('reader');
+        const successMessage = document.getElementById('successMessage'); // הודעת הצלחה
 
         let html5QrCode;
         let lastScannedBarcode = null; // הברקוד האחרון שסורק
@@ -129,16 +165,23 @@
             fetch(finalUrl)
                 .then(response => response.text())
                 .then(text => {
+                    // הצגת הודעת אישור על כל המסך
+                    successMessage.classList.add('show'); // הראה את ההודעה
+                    setTimeout(() => {
+                        successMessage.classList.remove('show'); // החבאת ההודעה לאחר שניה
+                    }, 1000); // 1 שניה
+
                     // אחרי סריקה מוצלחת, שים את הרקע על ירוק
                     document.body.style.backgroundColor = "#28a745"; // צבע ירוק
-                    resultDiv.textContent = text;
-                    resultDiv.classList.remove('duplicate'); // הסרת התווית duplicate אם היא היתה
+                    resultDiv.textContent = "סריקה הצליחה!";
+                    resultDiv.classList.add('success');
                     if (navigator.vibrate) {
                         navigator.vibrate(100); // ויברציה לאחר סריקה
                     }
                     setTimeout(() => {
-                        resultDiv.textContent = 'מוכן לסריקה הבאה...'; // הודעה למי שנמצא בתור
-                    }, 2500);
+                        // מחזירים את הרקע לצבע רגיל אחרי 2 שניות
+                        document.body.style.backgroundColor = "#f0f4f8";
+                    }, 2000); // אחרי 2 שניות, מחזירים את הרקע לצבע רגיל
                 })
                 .catch(err => {
                     resultDiv.textContent = 'שגיאת רשת.';
@@ -147,10 +190,6 @@
                 })
                 .finally(() => {
                     isProcessing = false; // סוף תהליך עיבוד
-                    // לאחר עיבוד, מחזירים את הרקע לצבע הרגיל
-                    setTimeout(() => {
-                        document.body.style.backgroundColor = "#f0f4f8";
-                    }, 2000); // אחרי 2 שניות, מחזירים את הרקע לצבע רגיל
                 });
         }
 
