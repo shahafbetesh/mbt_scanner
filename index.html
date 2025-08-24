@@ -118,17 +118,10 @@
         let lastScannedCode = null;
         let lastScanTimestamp = 0;
 
-        // --- הוספה חדשה: פונקציה להשמעת צליל ---
-        function playBeep() {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (AudioContext) {
-                const audioCtx = new AudioContext();
-                const oscillator = audioCtx.createOscillator();
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-                oscillator.connect(audioCtx.destination);
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.1);
+        // --- הוספה חדשה: פונקציה לרטט ---
+        function playVibration() {
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
             }
         }
 
@@ -155,11 +148,7 @@
                     resultDiv.textContent = text;
 
                     // --- הצלחה --- 
-                    playBeep();
-                    if (navigator.vibrate) {
-                        navigator.vibrate(200);
-                    }
-
+                    playVibration();  // הפעלת רטט במקום צליל
                     setTimeout(() => {
                         if(resultDiv.textContent === text) {
                             resultDiv.textContent = 'מוכן לסריקה הבאה...';
