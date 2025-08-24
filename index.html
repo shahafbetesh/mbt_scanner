@@ -80,27 +80,27 @@
         const readerDiv = document.getElementById('reader');
         
         let html5QrCode;
-        let lastScannedBarcode = null; // משתנה לאחסון הברקוד האחרון שסורק
-        let lastScanTime = 0; // משתנה לאחסון זמן הסריקה האחרונה
-        let isProcessing = false; // משתנה שמונע סריקות נוספות בזמן סריקה
+        let lastScannedBarcode = null; // הברקוד האחרון שסורק
+        let lastScanTime = 0; // זמן הסריקה של הברקוד האחרון
+        let isProcessing = false; // משתנה למנוע סריקות נוספות בזמן עיבוד
         const debounceTime = 15000; // 15 שניות השהיה בין סריקות כפולות
 
         function onScanSuccess(decodedText, decodedResult) {
-            const currentTime = new Date().getTime();
+            const currentTime = new Date().getTime(); // זמן נוכחי
 
-            // אם כבר סרקנו את הברקוד הזה לפני פחות מ-15 שניות, לא נבצע סריקה
-            if (lastScannedBarcode === decodedText && currentTime - lastScanTime < debounceTime) {
+            // בדיקה אם אותו ברקוד סרקנו לפני פחות מ-15 שניות
+            if (lastScannedBarcode === decodedText && (currentTime - lastScanTime) < debounceTime) {
                 console.log("ברקוד זה כבר סרוק לאחרונה, מחכים...");
-                return; // לא לסרוק שוב את אותו הברקוד
+                return; // לא לסרוק את אותו הברקוד שוב
             }
 
-            // מנגנון השהיה - עדכון זמן סריקה
+            // עדכון של ברקוד וסימון זמן סריקה
             lastScannedBarcode = decodedText;
             lastScanTime = currentTime;
 
-            if (isProcessing) return; // אם כבר מתבצע תהליך, לא להתחיל תהליך חדש
+            if (isProcessing) return; // אם תהליך עיבוד כבר פעיל, אל תתחיל סריקה חדשה
 
-            isProcessing = true; // תחילת סריקה חדשה
+            isProcessing = true; // תחילת עיבוד סריקה
             resultDiv.textContent = 'מעבד...';
 
             const sessionName = sessionNameInput.value.trim();
@@ -111,10 +111,10 @@
                 .then(text => {
                     resultDiv.textContent = text;
                     if (navigator.vibrate) {
-                        navigator.vibrate(100);
+                        navigator.vibrate(100); // ויברציה לאחר סריקה
                     }
                     setTimeout(() => {
-                        resultDiv.textContent = 'מוכן לסריקה הבאה...';
+                        resultDiv.textContent = 'מוכן לסריקה הבאה...'; // שגיאה או הודעה לא נכונה
                     }, 2500);
                 })
                 .catch(err => {
@@ -122,12 +122,12 @@
                     console.error(err);
                 })
                 .finally(() => {
-                    isProcessing = false; // סיום התהליך
+                    isProcessing = false; // סוף תהליך עיבוד
                 });
         }
 
         function onScanFailure(error) {
-            // מתעלמים מכישלונות קריאה כדי לא לעצור את הסורק
+            // מתעלמים מכישלונות קריאה
         }
 
         startButton.addEventListener('click', () => {
@@ -142,7 +142,7 @@
             startButton.textContent = "מצלמה פעילה...";
             readerDiv.style.display = 'block';
 
-            // אם המצלמה כבר פועלת, לא נטען אותה שוב
+            // אם המצלמה כבר פועלת, לא נטען אותה מחדש
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
 
@@ -152,7 +152,7 @@
                 };
 
                 html5QrCode.start(
-                    { facingMode: "environment" }, // תמיד מצלמה אחורית
+                    { facingMode: "environment" }, // מצלמה אחורית
                     config,
                     onScanSuccess,
                     onScanFailure
