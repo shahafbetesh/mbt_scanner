@@ -82,7 +82,7 @@
                 qrbox: { width: 250, height: 250 } 
             };
             
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+            html5Qrcode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
                 .catch((err) => {
                     console.log(`Unable to start scanning, error: ${err}`);
                     resultDiv.textContent = 'לא ניתן להפעיל את המצלמה.';
