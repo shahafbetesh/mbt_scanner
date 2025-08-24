@@ -3,36 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>סורק נוכחות</title>
+    <title>סורק נוכחות - קורס מאמנים</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 90vh;
-            background-color: #f4f4f9;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f7f7;
             color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
         }
         #container {
             background: white;
-            padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
             text-align: center;
-            width: 90%;
-            max-width: 400px;
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        h1 { color: #4a4a4a; }
+        h1 {
+            font-size: 24px;
+            color: #3d3d3d;
+            margin-bottom: 20px;
+        }
         input, button {
             width: 100%;
-            padding: 12px;
-            margin-top: 10px;
+            padding: 14px;
+            margin-top: 15px;
             border-radius: 8px;
-            border: 1px solid #ccc;
             font-size: 16px;
+            border: 1px solid #ddd;
             box-sizing: border-box;
+        }
+        input {
+            background-color: #fff;
+            color: #333;
         }
         button {
             background-color: #007aff;
@@ -40,71 +56,127 @@
             font-weight: bold;
             border: none;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.3s ease;
         }
         button:disabled {
             background-color: #aaa;
         }
+        button:hover:not(:disabled) {
+            background-color: #005bb5;
+        }
         #reader {
             width: 100%;
             margin-top: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            display: none;
+            border-radius: 10px;
+            background-color: #fafafa;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
         #result {
             margin-top: 20px;
             font-weight: bold;
-            min-height: 40px;
             color: #28a745;
+            min-height: 40px;
+        }
+        #result.error {
+            color: #e74c3c;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
-
-    <!-- ✅ טעינת ספריית html5-qrcode -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
     <div id="container">
-        <h1>סורק נוכחות</h1>
-        <input type="text" id="sessionName" placeholder="רשום את שם המפגש (למשל, מפגש-2)">
+        <h1>סורק נוכחות - קורס מאמנים</h1>
+        <input type="text" id="sessionName" placeholder="רשום את שם המפגש (למשל, מפגש-2)" autofocus>
         <button id="startButton">התחל סריקה</button>
         <div id="reader"></div>
         <div id="result"></div>
+        <div id="loading" class="loader" style="display: none;"></div>
     </div>
+
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 
     <script>
         const startButton = document.getElementById('startButton');
         const sessionNameInput = document.getElementById('sessionName');
         const resultDiv = document.getElementById('result');
         const readerDiv = document.getElementById('reader');
+        const loadingDiv = document.getElementById('loading');
+
+        let lastScannedCode = null;
+        let lastScanTimestamp = 0;
+
+        // --- הוספה חדשה: פונקציה להשמעת צליל ---
+        function playBeep() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                const audioCtx = new AudioContext();
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                oscillator.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.1);
+            }
+        }
 
         function onScanSuccess(decodedText, decodedResult) {
+            const now = Date.now();
+            
+            if (decodedText === lastScannedCode && (now - lastScanTimestamp < 60000)) {
+                return; 
+            }
+
+            lastScannedCode = decodedText;
+            lastScanTimestamp = now;
+
             const sessionName = sessionNameInput.value.trim();
             const finalUrl = decodedText + "&session=" + encodeURIComponent(sessionName);
 
             resultDiv.textContent = 'מעבד...';
+            resultDiv.classList.remove('error');
+            loadingDiv.style.display = 'block';
+
             fetch(finalUrl)
                 .then(response => response.text())
                 .then(text => {
                     resultDiv.textContent = text;
+
+                    // --- הצלחה --- 
+                    playBeep();
                     if (navigator.vibrate) {
-                        navigator.vibrate(100);
+                        navigator.vibrate(200);
                     }
+
                     setTimeout(() => {
                         if(resultDiv.textContent === text) {
                             resultDiv.textContent = 'מוכן לסריקה הבאה...';
                         }
-                    }, 2500);
+                    }, 2000);
                 })
                 .catch(err => {
                     resultDiv.textContent = 'שגיאת רשת.';
+                    resultDiv.classList.add('error');
                     console.error(err);
+                })
+                .finally(() => {
+                    loadingDiv.style.display = 'none';
                 });
         }
 
-        function onScanFailure(error) {
-            // מתעלמים מכישלונות קריאה כדי לא לעצור את הסורק
-        }
+        function onScanFailure(error) {}
 
         startButton.addEventListener('click', () => {
             const sessionName = sessionNameInput.value.trim();
@@ -117,6 +189,7 @@
             startButton.disabled = true;
             startButton.textContent = "טוען מצלמה...";
             readerDiv.style.display = 'block';
+            loadingDiv.style.display = 'block';
 
             const html5QrCode = new Html5Qrcode("reader");
 
@@ -126,18 +199,17 @@
             };
 
             html5QrCode.start(
-                { facingMode: "environment" }, // מצלמה אחורית
+                { facingMode: "environment" },
                 config,
                 onScanSuccess,
                 onScanFailure
-            ).then(() => {
-                startButton.textContent = "מצלמה מופעלת";
-            }).catch((err) => {
+            ).catch((err) => {
                 console.error("Unable to start scanning", err);
                 resultDiv.textContent = 'לא ניתן להפעיל את המצלמה.';
-                startButton.disabled = false;
                 sessionNameInput.disabled = false;
+                startButton.disabled = false;
                 startButton.textContent = "התחל סריקה";
+                loadingDiv.style.display = 'none';
             });
         });
     </script>
