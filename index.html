@@ -25,12 +25,42 @@
     </div>
 
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    
     <script>
         const startButton = document.getElementById('startButton');
         const sessionNameInput = document.getElementById('sessionName');
         const resultDiv = document.getElementById('result');
         const readerDiv = document.getElementById('reader');
-        let html5QrCode;
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // decodedText is the URL from the student's QR code
+            const sessionName = sessionNameInput.value.trim();
+            const finalUrl = decodedText + "&session=" + encodeURIComponent(sessionName);
+
+            resultDiv.textContent = 'מעבד...';
+            fetch(finalUrl)
+                .then(response => response.text())
+                .then(text => {
+                    resultDiv.textContent = text;
+                    if (navigator.vibrate) {
+                        navigator.vibrate(100);
+                    }
+                    setTimeout(() => {
+                        if(resultDiv.textContent === text) {
+                            resultDiv.textContent = 'מוכן לסריקה הבאה...';
+                        }
+                    }, 2500);
+                })
+                .catch(err => {
+                    resultDiv.textContent = 'שגיאת רשת.';
+                    console.error(err);
+                });
+        }
+
+        function onScanFailure(error) {
+          // This function is called when a scan attempt fails, but the camera is still running.
+          // We can ignore it to keep the scanner active.
+        }
 
         startButton.addEventListener('click', () => {
             const sessionName = sessionNameInput.value.trim();
@@ -44,41 +74,20 @@
             startButton.textContent = "טוען מצלמה...";
             readerDiv.style.display = 'block';
 
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText, decodedResult) => {
-                    // decodedText is the URL from the student's QR code
-                    const finalUrl = decodedText + "&session=" + encodeURIComponent(sessionName);
-
-                    resultDiv.textContent = 'מעבד...';
-                    fetch(finalUrl)
-                        .then(response => response.text())
-                        .then(text => {
-                            resultDiv.textContent = text;
-                            // Vibrate for feedback
-                            if (navigator.vibrate) {
-                                navigator.vibrate(100);
-                            }
-                            setTimeout(() => {
-                                if(resultDiv.textContent === text) {
-                                    resultDiv.textContent = 'מוכן לסריקה הבאה...';
-                                }
-                            }, 2500);
-                        })
-                        .catch(err => {
-                            resultDiv.textContent = 'שגיאת רשת.';
-                            console.error(err);
-                        });
-                },
-                (errorMessage) => {
-                    // handle scan error
-                })
-            .catch((err) => {
-                console.log(`Unable to start scanning, error: ${err}`);
-                resultDiv.textContent = 'לא ניתן להפעיל את המצלמה.';
-            });
+            const html5QrCode = new Html5Qrcode("reader");
+            
+            // Configuration for the scanner
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 } 
+            };
+            
+            // Start scanning. { facingMode: "environment" } asks for the back camera.
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+                .catch((err) => {
+                    console.log(`Unable to start scanning, error: ${err}`);
+                    resultDiv.textContent = 'לא ניתן להפעיל את המצלמה.';
+                });
         });
     </script>
 </body>
