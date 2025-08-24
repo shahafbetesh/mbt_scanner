@@ -6,34 +6,45 @@
     <title>סורק נוכחות</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 90vh;
-            background-color: #f4f4f9;
+            background-color: #f0f4f8;
             color: #333;
             transition: background-color 0.3s ease;
+            margin: 0;
         }
         #container {
             background: white;
-            padding: 25px;
+            padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             text-align: center;
             width: 90%;
-            max-width: 400px;
+            max-width: 450px;
+            border: 1px solid #ddd;
         }
-        h1 { color: #4a4a4a; }
+        h1 {
+            color: #4a4a4a;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
         input, button {
             width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            font-size: 16px;
+            padding: 14px;
+            margin-top: 15px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            font-size: 18px;
             box-sizing: border-box;
+            transition: background-color 0.3s;
+        }
+        input:focus, button:focus {
+            outline: none;
+            border-color: #007aff;
         }
         button {
             background-color: #007aff;
@@ -48,15 +59,17 @@
         }
         #reader {
             width: 100%;
-            margin-top: 20px;
-            border-radius: 8px;
+            margin-top: 25px;
+            border-radius: 12px;
             overflow: hidden;
+            display: none;
         }
         #result {
             margin-top: 20px;
             font-weight: bold;
             min-height: 40px;
             color: #28a745;
+            font-size: 18px;
         }
         .error {
             color: #dc3545;
@@ -88,12 +101,12 @@
         let lastScannedBarcode = null; // הברקוד האחרון שסורק
         let lastScanTime = 0; // זמן הסריקה של הברקוד האחרון
         let isProcessing = false; // משתנה למנוע סריקות נוספות בזמן עיבוד
-        const debounceTime = 60000; // 60 שניות השהיה בין סריקות כפולות
+        const debounceTime = 120000; // 2 דקות השהיה בין סריקות כפולות
 
         function onScanSuccess(decodedText, decodedResult) {
             const currentTime = new Date().getTime(); // זמן נוכחי
 
-            // בדיקה אם אותו ברקוד סרקנו לפני פחות מ-60 שניות
+            // בדיקה אם אותו ברקוד סרקנו לפני פחות מ-2 דקות
             if (lastScannedBarcode === decodedText && (currentTime - lastScanTime) < debounceTime) {
                 console.log("ברקוד זה כבר סרוק לאחרונה, מחכים...");
                 resultDiv.textContent = "ברקוד זה כבר סרק לאחרונה.";
@@ -136,7 +149,7 @@
                     isProcessing = false; // סוף תהליך עיבוד
                     // לאחר עיבוד, מחזירים את הרקע לצבע הרגיל
                     setTimeout(() => {
-                        document.body.style.backgroundColor = "#f4f4f9";
+                        document.body.style.backgroundColor = "#f0f4f8";
                     }, 2000); // אחרי 2 שניות, מחזירים את הרקע לצבע רגיל
                 });
         }
@@ -162,7 +175,7 @@
                 html5QrCode = new Html5Qrcode("reader");
 
                 const config = {
-                    fps: 10,
+                    fps: 30, // העלאה של FPS ל-30 להאצת הסריקה
                     qrbox: { width: 250, height: 250 }
                 };
 
