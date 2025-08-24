@@ -106,7 +106,8 @@
         <div id="loading" class="loader" style="display: none;"></div>
     </div>
 
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- קישור מעודכן לספריית html5-qrcode -->
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 
     <script>
         const startButton = document.getElementById('startButton');
@@ -165,7 +166,6 @@
         }
 
         function onScanFailure(error) {
-            // כאן אפשר להוסיף לוגים או טיפול בשגיאות אם יש צורך
             console.log(`Scan failed: ${error}`);
         }
 
