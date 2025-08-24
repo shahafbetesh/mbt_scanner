@@ -58,24 +58,12 @@
             min-height: 40px;
             color: #28a745;
         }
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #3498db;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 2s linear infinite;
-            margin: 0 auto;
-            display: none;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .error {
+            color: #dc3545;
         }
     </style>
 
-    <!-- ✅ טעינת ספריית html5-qrcode -->
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
     <div id="container">
@@ -84,7 +72,6 @@
         <button id="startButton">התחל סריקה</button>
         <div id="reader"></div>
         <div id="result"></div>
-        <div class="loader" id="loading"></div>
     </div>
 
     <script>
@@ -92,37 +79,30 @@
         const sessionNameInput = document.getElementById('sessionName');
         const resultDiv = document.getElementById('result');
         const readerDiv = document.getElementById('reader');
-        const loadingDiv = document.getElementById('loading');
+        
+        let html5QrCode;
 
         function onScanSuccess(decodedText, decodedResult) {
             const sessionName = sessionNameInput.value.trim();
             const finalUrl = decodedText + "&session=" + encodeURIComponent(sessionName);
 
             resultDiv.textContent = 'מעבד...';
-            loadingDiv.style.display = 'block';
-
             fetch(finalUrl)
                 .then(response => response.text())
                 .then(text => {
                     resultDiv.textContent = text;
-
-                    // רטט חיווי
                     if (navigator.vibrate) {
-                        navigator.vibrate(200); // רטט יותר ארוך
+                        navigator.vibrate(100);
                     }
-
                     setTimeout(() => {
-                        if(resultDiv.textContent === text) {
-                            resultDiv.textContent = 'נרשם בהצלחה!';
+                        if (resultDiv.textContent === text) {
+                            resultDiv.textContent = 'מוכן לסריקה הבאה...';
                         }
                     }, 2500);
                 })
                 .catch(err => {
                     resultDiv.textContent = 'שגיאת רשת.';
                     console.error(err);
-                })
-                .finally(() => {
-                    loadingDiv.style.display = 'none';
                 });
         }
 
@@ -141,9 +121,8 @@
             startButton.disabled = true;
             startButton.textContent = "טוען מצלמה...";
             readerDiv.style.display = 'block';
-            loadingDiv.style.display = 'block';
 
-            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode = new Html5Qrcode("reader");
 
             const config = {
                 fps: 10,
@@ -151,19 +130,18 @@
             };
 
             html5QrCode.start(
-                { facingMode: "environment" },
+                { facingMode: "environment" }, // תמיד מצלמה אחורית
                 config,
                 onScanSuccess,
                 onScanFailure
             ).then(() => {
-                startButton.textContent = "מצלמה מופעלת";
+                startButton.textContent = "מצלמה פעילה";
             }).catch((err) => {
-                console.error("Unable to start scanning", err);
                 resultDiv.textContent = 'לא ניתן להפעיל את המצלמה.';
+                console.error(err);
                 startButton.disabled = false;
                 sessionNameInput.disabled = false;
                 startButton.textContent = "התחל סריקה";
-                loadingDiv.style.display = 'none';
             });
         });
     </script>
