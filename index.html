@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>סורק נוכחות (אבחון)</title>
+    <title>סורק נוכחות</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; background-color: #f4f4f9; color: #333; }
         #container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
@@ -29,8 +29,6 @@
     </script>
     
     <script>
-        console.log("Checkpoint 1: Page loaded and main script started.");
-
         const startButton = document.getElementById('startButton');
         const sessionNameInput = document.getElementById('sessionName');
         const resultDiv = document.getElementById('result');
@@ -66,44 +64,11 @@
         }
 
         startButton.addEventListener('click', () => {
-            console.log("Checkpoint 2: 'Start Scan' button clicked.");
-
             const sessionName = sessionNameInput.value.trim();
             if (!sessionName) {
                 alert('יש להזין שם מפגש לפני שמתחילים לסרוק.');
-                console.warn("Scan aborted: Session name was empty.");
                 return;
             }
 
             sessionNameInput.disabled = true;
             startButton.disabled = true;
-            startButton.textContent = "טוען מצלמה...";
-            readerDiv.style.display = 'block';
-
-            try {
-                console.log("Checkpoint 3: Trying to create Html5Qrcode object.");
-                const html5QrCode = new Html5Qrcode("reader");
-                console.log("Checkpoint 4: Html5Qrcode object created successfully.");
-                
-                const config = { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 } 
-                };
-                
-                console.log("Checkpoint 5: Calling html5QrCode.start()...");
-                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
-                    .then(() => {
-                        console.log("Checkpoint 6: SUCCESS - html5QrCode.start() promise resolved.");
-                    })
-                    .catch((err) => {
-                        console.error("Checkpoint 7: ERROR - html5QrCode.start() promise was rejected.", err);
-                        resultDiv.textContent = 'שגיאה בהפעלת המצלמה. בדוק הרשאות.';
-                    });
-            } catch (err) {
-                console.error("Checkpoint 8: CRITICAL ERROR - Failed to create or start scanner.", err);
-                resultDiv.textContent = 'שגיאה קריטית בספריית הסורק.';
-            }
-        });
-    </script>
-</body>
-</html>
