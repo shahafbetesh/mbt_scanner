@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>סורק נוכחות</title>
     <style>
+        /* עיצוב בסיסי */
         body {
             font-family: 'Roboto', sans-serif;
             display: flex;
@@ -14,9 +15,9 @@
             min-height: 90vh;
             background-color: #f0f4f8;
             color: #333;
-            transition: background-color 0.3s ease;
             margin: 0;
         }
+
         #container {
             background: white;
             padding: 30px;
@@ -27,25 +28,20 @@
             max-width: 450px;
             border: 1px solid #ddd;
         }
+
         h1 {
-            color: #4a4a4a;
             margin-bottom: 20px;
             font-size: 24px;
         }
+
         input, button {
             width: 100%;
             padding: 14px;
             margin-top: 15px;
             border-radius: 10px;
-            border: 1px solid #ddd;
             font-size: 18px;
-            box-sizing: border-box;
-            transition: background-color 0.3s;
         }
-        input:focus, button:focus {
-            outline: none;
-            border-color: #007aff;
-        }
+
         button {
             background-color: #007aff;
             color: white;
@@ -54,36 +50,17 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
+
         button:disabled {
             background-color: #aaa;
         }
+
         #reader {
             width: 100%;
             margin-top: 25px;
-            border-radius: 12px;
-            overflow: hidden;
             display: none;
         }
-        #result {
-            margin-top: 20px;
-            font-weight: bold;
-            min-height: 40px;
-            color: #28a745;
-            font-size: 18px;
-        }
-        .error {
-            color: #dc3545;
-        }
-        .duplicate {
-            color: #ffc107;
-            font-weight: bold;
-        }
-        .success {
-            color: #28a745;
-            font-size: 20px;
-        }
 
-        /* הודעה צפה למעלה */
         .success-message {
             position: fixed;
             top: 0;
@@ -93,7 +70,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: rgba(40, 167, 69, 0.9); /* ירוק עם שקיפות */
+            background-color: rgba(40, 167, 69, 0.9);
             color: white;
             font-size: 36px;
             font-weight: bold;
@@ -101,15 +78,21 @@
             visibility: hidden;
             opacity: 0;
             transition: opacity 0.5s ease, visibility 0s 0.5s;
+            text-align: center;
+            flex-direction: column;
         }
 
         .success-message.show {
             visibility: visible;
             opacity: 1;
-            transition: opacity 0.5s ease, visibility 0s 0s;
+        }
+
+        .success-message .name {
+            font-size: 28px;
+            font-weight: normal;
+            margin-top: 20px;
         }
     </style>
-
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
@@ -121,83 +104,89 @@
         <div id="result"></div>
     </div>
 
-    <!-- הודעת אישור צפה -->
     <div id="successMessage" class="success-message">
-        סריקה הצליחה!
+        <div id="successText">סריקה הצליחה!</div>
+        <div id="scannedName" class="name"></div>
     </div>
 
     <script>
-        const startButton = document.getElementById('startButton');
+        // משתנים עולמיים
+        let html5QrCode;
+        let isProcessing = false;
+        let lastScannedBarcode = null;
+        let lastScanTime = 0;
+
+        const debounceTime = 120000; // 2 דקות השהיה בין סריקות כפולות
+
+        // אלמנטים ב-DOM
         const sessionNameInput = document.getElementById('sessionName');
         const resultDiv = document.getElementById('result');
         const readerDiv = document.getElementById('reader');
-        const successMessage = document.getElementById('successMessage'); // הודעת הצלחה
+        const successMessage = document.getElementById('successMessage');
+        const successText = document.getElementById('successText');
+        const scannedName = document.getElementById('scannedName');
+        const startButton = document.getElementById('startButton');
 
-        let html5QrCode;
-        let lastScannedBarcode = null; // הברקוד האחרון שסורק
-        let lastScanTime = 0; // זמן הסריקה של הברקוד האחרון
-        let isProcessing = false; // משתנה למנוע סריקות נוספות בזמן עיבוד
-        const debounceTime = 120000; // 2 דקות השהיה בין סריקות כפולות
+        // פונקציה ליצירת השם
+        const setStudentName = (name) => {
+            scannedName.textContent = name;
+        };
 
-        function onScanSuccess(decodedText, decodedResult) {
-            const currentTime = new Date().getTime(); // זמן נוכחי
+        // הצגת הודעה צפה
+        const showSuccessMessage = (name) => {
+            successText.textContent = "סריקה הצליחה!";
+            setStudentName(name);
+            successMessage.classList.add('show');
+            setTimeout(() => successMessage.classList.remove('show'), 1000);
+        };
 
-            // בדיקה אם אותו ברקוד סרקנו לפני פחות מ-2 דקות
+        // עדכון מצב UI אחרי סריקה מוצלחת
+        const updateUIOnSuccess = () => {
+            resultDiv.textContent = "סריקה הצליחה!";
+            resultDiv.classList.add('success');
+            document.body.style.backgroundColor = "#28a745"; // ירוק
+            setTimeout(() => document.body.style.backgroundColor = "#f0f4f8", 2000);
+        };
+
+        // שליחת בקשה לשרת
+        const handleScanSuccess = async (decodedText) => {
+            const currentTime = new Date().getTime();
+
+            // בדיקה אם סרקנו את אותו ברקוד בזמן קצר מדי
             if (lastScannedBarcode === decodedText && (currentTime - lastScanTime) < debounceTime) {
-                console.log("ברקוד זה כבר סרוק לאחרונה, מחכים...");
-                resultDiv.textContent = "ברקוד זה כבר סרק לאחרונה.";
+                console.log("ברקוד סרוק לאחרונה");
+                resultDiv.textContent = "ברקוד זה כבר סרוק לאחרונה.";
                 resultDiv.classList.add('duplicate');
-                return; // לא לסרוק את אותו הברקוד שוב
+                return;
             }
 
-            // עדכון של ברקוד וסימון זמן סריקה
+            // עדכון זמן וסריקה
             lastScannedBarcode = decodedText;
             lastScanTime = currentTime;
 
-            if (isProcessing) return; // אם תהליך עיבוד כבר פעיל, אל תתחיל סריקה חדשה
-
-            isProcessing = true; // תחילת עיבוד סריקה
+            if (isProcessing) return;
+            isProcessing = true;
             resultDiv.textContent = 'מעבד...';
 
             const sessionName = sessionNameInput.value.trim();
-            const finalUrl = decodedText + "&session=" + encodeURIComponent(sessionName);
+            const finalUrl = `${decodedText}&session=${encodeURIComponent(sessionName)}`;
 
-            fetch(finalUrl)
-                .then(response => response.text())
-                .then(text => {
-                    // הצגת הודעת אישור על כל המסך
-                    successMessage.classList.add('show'); // הראה את ההודעה
-                    setTimeout(() => {
-                        successMessage.classList.remove('show'); // החבאת ההודעה לאחר שניה
-                    }, 1000); // 1 שניה
+            try {
+                const response = await fetch(finalUrl);
+                const data = await response.json();
+                const studentName = data.name || "שם לא זמין";
+                showSuccessMessage(studentName);
+                updateUIOnSuccess();
+            } catch (err) {
+                console.error(err);
+                resultDiv.textContent = 'שגיאת רשת.';
+            } finally {
+                isProcessing = false;
+            }
+        };
 
-                    // אחרי סריקה מוצלחת, שים את הרקע על ירוק
-                    document.body.style.backgroundColor = "#28a745"; // צבע ירוק
-                    resultDiv.textContent = "סריקה הצליחה!";
-                    resultDiv.classList.add('success');
-                    if (navigator.vibrate) {
-                        navigator.vibrate(100); // ויברציה לאחר סריקה
-                    }
-                    setTimeout(() => {
-                        // מחזירים את הרקע לצבע רגיל אחרי 2 שניות
-                        document.body.style.backgroundColor = "#f0f4f8";
-                    }, 2000); // אחרי 2 שניות, מחזירים את הרקע לצבע רגיל
-                })
-                .catch(err => {
-                    resultDiv.textContent = 'שגיאת רשת.';
-                    resultDiv.classList.remove('duplicate');
-                    console.error(err);
-                })
-                .finally(() => {
-                    isProcessing = false; // סוף תהליך עיבוד
-                });
-        }
-
-        function onScanFailure(error) {
-            // מתעלמים מכישלונות קריאה
-        }
-
-        startButton.addEventListener('click', () => {
+        // התחלת סריקה
+        const startScanning = () => {
             const sessionName = sessionNameInput.value.trim();
             if (!sessionName) {
                 alert('יש להזין שם מפגש לפני שמתחילים לסרוק.');
@@ -209,31 +198,22 @@
             startButton.textContent = "מצלמה פעילה...";
             readerDiv.style.display = 'block';
 
-            // אם המצלמה כבר פועלת, לא נטען אותה מחדש
+            // התחלת מצלמת QR
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
 
-                const config = {
-                    fps: 30, // העלאה של FPS ל-30 להאצת הסריקה
-                    qrbox: { width: 250, height: 250 }
-                };
-
                 html5QrCode.start(
-                    { facingMode: "environment" }, // מצלמה אחורית
-                    config,
-                    onScanSuccess,
-                    onScanFailure
-                ).then(() => {
-                    startButton.textContent = "מצלמה פעילה";
-                }).catch((err) => {
-                    resultDiv.textContent = 'לא ניתן להפעיל את המצלמה.';
-                    console.error(err);
-                    startButton.disabled = false;
-                    sessionNameInput.disabled = false;
-                    startButton.textContent = "התחל סריקה";
-                });
+                    { facingMode: "environment" },
+                    { fps: 30, qrbox: { width: 250, height: 250 } },
+                    (decodedText) => handleScanSuccess(decodedText),
+                    (error) => console.log(error)
+                );
             }
-        });
+        };
+
+        // התחלת סריקה בלחיצה על כפתור
+        startButton.addEventListener('click', startScanning);
+
     </script>
 </body>
 </html>
