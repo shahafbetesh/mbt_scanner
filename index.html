@@ -50,7 +50,6 @@
             margin-top: 20px;
             border-radius: 8px;
             overflow: hidden;
-            display: none;
         }
         #result {
             margin-top: 20px;
@@ -81,12 +80,32 @@
         const readerDiv = document.getElementById('reader');
         
         let html5QrCode;
+        let lastScannedBarcode = null; // משתנה לאחסון הברקוד האחרון שסורק
+        let lastScanTime = 0; // משתנה לאחסון זמן הסריקה האחרונה
+        let isProcessing = false; // משתנה שמונע סריקות נוספות בזמן סריקה
+        const debounceTime = 15000; // 15 שניות השהיה בין סריקות כפולות
 
         function onScanSuccess(decodedText, decodedResult) {
+            const currentTime = new Date().getTime();
+
+            // אם כבר סרקנו את הברקוד הזה לפני פחות מ-15 שניות, לא נבצע סריקה
+            if (lastScannedBarcode === decodedText && currentTime - lastScanTime < debounceTime) {
+                console.log("ברקוד זה כבר סרוק לאחרונה, מחכים...");
+                return; // לא לסרוק שוב את אותו הברקוד
+            }
+
+            // מנגנון השהיה - עדכון זמן סריקה
+            lastScannedBarcode = decodedText;
+            lastScanTime = currentTime;
+
+            if (isProcessing) return; // אם כבר מתבצע תהליך, לא להתחיל תהליך חדש
+
+            isProcessing = true; // תחילת סריקה חדשה
+            resultDiv.textContent = 'מעבד...';
+
             const sessionName = sessionNameInput.value.trim();
             const finalUrl = decodedText + "&session=" + encodeURIComponent(sessionName);
 
-            resultDiv.textContent = 'מעבד...';
             fetch(finalUrl)
                 .then(response => response.text())
                 .then(text => {
@@ -95,14 +114,15 @@
                         navigator.vibrate(100);
                     }
                     setTimeout(() => {
-                        if (resultDiv.textContent === text) {
-                            resultDiv.textContent = 'מוכן לסריקה הבאה...';
-                        }
+                        resultDiv.textContent = 'מוכן לסריקה הבאה...';
                     }, 2500);
                 })
                 .catch(err => {
                     resultDiv.textContent = 'שגיאת רשת.';
                     console.error(err);
+                })
+                .finally(() => {
+                    isProcessing = false; // סיום התהליך
                 });
         }
 
@@ -119,30 +139,33 @@
 
             sessionNameInput.disabled = true;
             startButton.disabled = true;
-            startButton.textContent = "טוען מצלמה...";
+            startButton.textContent = "מצלמה פעילה...";
             readerDiv.style.display = 'block';
 
-            html5QrCode = new Html5Qrcode("reader");
+            // אם המצלמה כבר פועלת, לא נטען אותה שוב
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
 
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            };
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                };
 
-            html5QrCode.start(
-                { facingMode: "environment" }, // תמיד מצלמה אחורית
-                config,
-                onScanSuccess,
-                onScanFailure
-            ).then(() => {
-                startButton.textContent = "מצלמה פעילה";
-            }).catch((err) => {
-                resultDiv.textContent = 'לא ניתן להפעיל את המצלמה.';
-                console.error(err);
-                startButton.disabled = false;
-                sessionNameInput.disabled = false;
-                startButton.textContent = "התחל סריקה";
-            });
+                html5QrCode.start(
+                    { facingMode: "environment" }, // תמיד מצלמה אחורית
+                    config,
+                    onScanSuccess,
+                    onScanFailure
+                ).then(() => {
+                    startButton.textContent = "מצלמה פעילה";
+                }).catch((err) => {
+                    resultDiv.textContent = 'לא ניתן להפעיל את המצלמה.';
+                    console.error(err);
+                    startButton.disabled = false;
+                    sessionNameInput.disabled = false;
+                    startButton.textContent = "התחל סריקה";
+                });
+            }
         });
     </script>
 </body>
